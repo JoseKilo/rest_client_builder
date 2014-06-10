@@ -9,12 +9,18 @@ https://github.com/django-extensions/django-extensions
 
 """
 
+from distutils import core
+import imp
+import inspect
 import json
+import os
 import re
+import shutil
+import sys
 
 from django.core.exceptions import ViewDoesNotExist
 from django.core.urlresolvers import RegexURLPattern, RegexURLResolver
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 
 def extract_info_from_urlpatterns(urlpatterns, url_base='', name_base=''):
@@ -77,22 +83,60 @@ def clean_patterns(urls_data):
 
 
 class Command(BaseCommand):
-    args = ''
+    args = '[root_urls.py]'
     help = 'Generate endpoints.py'
 
     def __init__(self, *args, **kwargs):
         super(Command, self).__init__(*args, **kwargs)
 
     def handle(self, *args, **options):
-        import rbx.api_drf.urls
-        urls = rbx.api_drf.urls.urlpatterns
+        if len(args) < 1:
+            raise CommandError('You need to specify a root urls.py')
+
+        root_urls_module = imp.load_source('urls', args[0])
+
+        base_dir = self.create_client_package_base_dir()
+        self.copy_base_client_library(base_dir)
+        self.write_endpoints(root_urls_module, base_dir)
+        setup_file = self.copy_setup(base_dir)
+        self.run_setup(base_dir)
+
+    def run_setup(self, base_dir):
+        previous_path = os.getcwd()
+        os.chdir(base_dir)
+        core.run_setup('setup.py', ['install'])
+        os.chdir(previous_path)
+
+    def copy_setup(self, base_dir):
+        setup_path = os.path.join(base_dir, 'rest_client', 'setup.py')
+        shutil.copy(setup_path, base_dir)
+        return os.path.join(base_dir, 'setup.py')
+
+    def create_client_package_base_dir(self):
+        base_dir_path = '_rest_client_build'
+        if not os.path.exists(base_dir_path):
+            os.makedirs(base_dir_path)
+        return base_dir_path
+
+    def copy_base_client_library(self, base_dir):
+        base_dir_abs = os.path.abspath(base_dir)
+        module = __import__('rest_client')
+        init_path = inspect.getsourcefile(module)
+        module_path = os.path.sep.join(init_path.split(os.path.sep)[:-1])
+        shutil.rmtree(base_dir)
+        shutil.copytree(module_path, os.path.join(base_dir, 'rest_client'))
+
+    def write_endpoints(self, root_urls_module, base_dir):
+        urls = root_urls_module.urlpatterns
         urls_data = extract_info_from_urlpatterns(urls,
                                                   url_base='api/',
                                                   name_base='')
         clean_urls = clean_patterns(urls_data)
         ENDPOINTS = dict(clean_urls)
 
-        with open('endpoints.py', 'w+') as output_module:
+        endpoints_path = os.path.join(base_dir, 'rest_client', 'endpoints.py')
+
+        with open(endpoints_path, 'w+') as output_module:
             output_module.write('ENDPOINTS = ')
             output_module.write(json.dumps(ENDPOINTS, sort_keys=True,
                                            indent=4, separators=(',', ': ')))
