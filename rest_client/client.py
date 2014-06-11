@@ -40,12 +40,7 @@ class ApiChunk(object):
         to construct the url structure and they are mandatory) and also
         extra GET parameters (which are appended at the end).
 
-        A special `many` argument can used to specify that we expect several
-        results to be returned.
-
         """
-
-        many = kwargs.pop('many', False)
 
         request = partial(
             getattr(requests.api, 'get'),  # TODO Generalize
@@ -73,10 +68,7 @@ class ApiChunk(object):
 
         response = request(url).json()
 
-        if many:
-            return response['results']
-        else:
-            return response
+        return response
 
 
 class Client(object):
