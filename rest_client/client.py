@@ -12,6 +12,21 @@ from .endpoints import ENDPOINTS
 
 
 class ApiChunk(object):
+    """
+    Abstractions of an Api endpoint or an Api midpoint.
+
+    For an API endpoint like 'api/shutters/shutterscreative-list'
+    Client library users will invoke Client().shutters.shutterscreative_list()
+    Where each midpoint in the chain will be an instance of this class.
+
+    This class instances are callables that will perform HTTP requests
+    when called.
+
+    Instances of this class can also return new instances if nested api
+    resources are invoked.
+
+    """
+
     def __init__(self, name):
         self.name = name
 
@@ -20,6 +35,16 @@ class ApiChunk(object):
         return ApiChunk(new_name)
 
     def __call__(self, *args, **kwargs):
+        """
+        Within kwargs we can receive url parameters (which need to be used
+        to construct the url structure and they are mandatory) and also
+        extra GET parameters (which are appended at the end).
+
+        A special `many` argument can used to specify that we expect several
+        results to be returned.
+
+        """
+
         many = kwargs.pop('many', False)
 
         request = partial(
@@ -27,15 +52,18 @@ class ApiChunk(object):
             auth=requests.auth.HTTPBasicAuth(*settings.RBX_CREDENTIALS),
         )
 
+        # Regular expression to split both types of parameters
         url_kwarg_keys = re.findall('{([^}]*)}', ENDPOINTS[self.name])
         url_kwargs = dict((key, kwargs.pop(key, None))
                           for key in url_kwarg_keys)
 
+        # Construct the url
         url = urlparse.urljoin(
             settings.RBX_HOST,
             ENDPOINTS[self.name].format(*args, **url_kwargs)
         )
 
+        # Append extra parameters
         url_parts = list(urlparse.urlparse(url))
         query = dict(urlparse.parse_qsl(url_parts[4]))  # URL params
         query.update(kwargs)
@@ -46,8 +74,7 @@ class ApiChunk(object):
         response = request(url).json()
 
         if many:
-            # TODO make sure we've only got one result
-            return response['results'][0]
+            return response['results']
         else:
             return response
 
