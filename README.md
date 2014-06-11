@@ -26,3 +26,19 @@ The user code will be:
 ``
 my_sub_resource = Client().resource.sub_resource(name='res1')
 ``
+
+
+Client library generation
+-------------------------
+
+Include this app into ``INSTALLED_APPS`` of your Django project.
+
+Run the following management command:
+
+``python manage.py generate_endpoints [path/to/your/root/api/urls.py]``
+
+It will package your client library and will place it inside
+
+``_rest_client_build/``
+
+You can then install it on your client-side project.
