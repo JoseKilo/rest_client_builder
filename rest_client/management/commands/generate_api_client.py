@@ -8,6 +8,7 @@ Inspired by django-extensions management command `show_urls`
 https://github.com/django-extensions/django-extensions
 """
 
+import ast
 from distutils import core
 import imp
 import inspect
@@ -20,6 +21,8 @@ import sys
 from django.core.exceptions import ViewDoesNotExist
 from django.core.urlresolvers import RegexURLPattern, RegexURLResolver
 from django.core.management.base import BaseCommand, CommandError
+
+from rest_client import unparse
 
 
 def extract_info_from_urlpatterns(urlpatterns, url_base='', name_base=''):
@@ -89,27 +92,54 @@ class Command(BaseCommand):
         super(Command, self).__init__(*args, **kwargs)
 
     def handle(self, *args, **options):
-        if len(args) < 1:
-            raise CommandError('You need to specify a root urls.py')
+        if len(args) < 3:
+            raise CommandError(
+                'Usage:\n'
+                'python manage.py generate_api_client '
+                '[root_urls.py] [package_name] [package_version]'
+            )
+
+        conf = {
+            'NAME': args[1],
+            'VERSION': args[2]
+        }
 
         root_urls_module = imp.load_source('urls', args[0])
 
         base_dir = self.create_client_package_base_dir()
-        self.copy_base_client_library(base_dir)
-        self.write_endpoints(root_urls_module, base_dir)
-        setup_file = self.copy_setup(base_dir)
+        self.copy_base_client_library(base_dir, conf)
+        self.write_endpoints(root_urls_module, base_dir, conf)
+        setup_file = self.copy_setup(base_dir, conf)
+        self.replace_macros(setup_file, conf)
         self.run_setup(base_dir)
+
+    def replace_macros(self, setup_path, conf):
+        class MacroReplacer(ast.NodeTransformer):
+            def visit_Str(self, node):
+                if node.s.startswith('__') and node.s.endswith('__'):
+                    conf_key = re.sub('__', '', node.s)
+                    conf_value = conf.get(conf_key, conf_key)
+                    return ast.Str(conf_value)
+                else:
+                    return ast.Str(node.s)
+        with open(setup_path, 'r') as setup_file:
+            setup_content = setup_file.read()
+        original_setup = ast.parse(setup_content)
+        modified_setup = MacroReplacer().visit(original_setup)
+        with open(setup_path, 'w') as setup_file:
+            unparse.Unparser(modified_setup, setup_file)
 
     def run_setup(self, base_dir):
         previous_path = os.getcwd()
         os.chdir(base_dir)
-        core.run_setup('setup.py', ['install'])
+        core.run_setup('setup.py', ['sdist'])
         os.chdir(previous_path)
 
-    def copy_setup(self, base_dir):
-        setup_path = os.path.join(base_dir, 'rest_client', 'setup.py')
-        shutil.copy(setup_path, base_dir)
-        return os.path.join(base_dir, 'setup.py')
+    def copy_setup(self, base_dir, conf):
+        setup_path = os.path.join(base_dir, conf['NAME'], 'setup_template.py')
+        destination = os.path.join(base_dir, 'setup.py')
+        shutil.copy(setup_path, destination)
+        return destination
 
     def create_client_package_base_dir(self):
         base_dir_path = '_rest_client_build'
@@ -117,15 +147,15 @@ class Command(BaseCommand):
             os.makedirs(base_dir_path)
         return base_dir_path
 
-    def copy_base_client_library(self, base_dir):
+    def copy_base_client_library(self, base_dir, conf):
         base_dir_abs = os.path.abspath(base_dir)
         module = __import__('rest_client')
         init_path = inspect.getsourcefile(module)
         module_path = os.path.sep.join(init_path.split(os.path.sep)[:-1])
         shutil.rmtree(base_dir)
-        shutil.copytree(module_path, os.path.join(base_dir, 'rest_client'))
+        shutil.copytree(module_path, os.path.join(base_dir, conf['NAME']))
 
-    def write_endpoints(self, root_urls_module, base_dir):
+    def write_endpoints(self, root_urls_module, base_dir, conf):
         urls = root_urls_module.urlpatterns
         urls_data = extract_info_from_urlpatterns(urls,
                                                   url_base='api/',
@@ -133,7 +163,7 @@ class Command(BaseCommand):
         clean_urls = clean_patterns(urls_data)
         ENDPOINTS = dict(clean_urls)
 
-        endpoints_path = os.path.join(base_dir, 'rest_client', 'endpoints.py')
+        endpoints_path = os.path.join(base_dir, conf['NAME'], 'endpoints.py')
 
         with open(endpoints_path, 'w+') as output_module:
             output_module.write('ENDPOINTS = ')
