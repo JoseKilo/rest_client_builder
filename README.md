@@ -27,11 +27,32 @@ The user code will be:
 my_sub_resource = Client().resource.sub_resource(name='res1')
 ``
 
+Names for above python accesible objects will be taken from url names and
+namespaces specified on urls.py modules found in your Django API server
+project.
+
+For example, if your project has an urlpattern like this:
+
+``
+url(
+    regex=r'^my-url-pattern/',
+    view=views.my_view,
+    name='my-name'
+)
+``
+
+The equivalent Python expression would be:
+
+``
+Client().my_name()
+``
+
+Note that hyphens (``-``) are replaced by underscores (``_``).
 
 Client library generation
 -------------------------
 
-Include this app into ``INSTALLED_APPS`` of your Django project.
+Include this app into ``INSTALLED_APPS`` of your Django API server project.
 
 Run the following management command:
 
