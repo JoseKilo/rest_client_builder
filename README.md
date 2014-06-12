@@ -24,7 +24,7 @@ In order to consume an API endpoint like
 The user code will be:
 
 ``
-my_sub_resource = Client().resource.sub_resource(name='res1')
+my_sub_resource = Client(host, credentials).resource.sub_resource(name='res1')
 ``
 
 Names for above python accesible objects will be taken from url names and
@@ -44,7 +44,7 @@ url(
 The equivalent Python expression would be:
 
 ``
-Client().my_name()
+Client(host, credentials).my_name()
 ``
 
 Note that hyphens (``-``) are replaced by underscores (``_``).

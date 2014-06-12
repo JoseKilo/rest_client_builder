@@ -6,8 +6,6 @@ import urlparse
 
 import requests
 
-from django.conf import settings
-
 from .endpoints import ENDPOINTS
 
 
@@ -27,12 +25,14 @@ class ApiChunk(object):
 
     """
 
-    def __init__(self, name):
+    def __init__(self, host, credentials, name):
         self.name = name
+        self.host = host
+        self.credentials = credentials
 
     def __getattr__(self, name):
         new_name = '__'.join([self.name, name])
-        return ApiChunk(new_name)
+        return ApiChunk(self.host, self.credentials, new_name)
 
     def __call__(self, *args, **kwargs):
         """
@@ -44,7 +44,7 @@ class ApiChunk(object):
 
         request = partial(
             getattr(requests.api, 'get'),  # TODO Generalize
-            auth=requests.auth.HTTPBasicAuth(*settings.RBX_CREDENTIALS),
+            auth=requests.auth.HTTPBasicAuth(*self.credentials),
         )
 
         # Regular expression to split both types of parameters
@@ -54,7 +54,7 @@ class ApiChunk(object):
 
         # Construct the url
         url = urlparse.urljoin(
-            settings.RBX_HOST,
+            self.host,
             ENDPOINTS[self.name].format(*args, **url_kwargs)
         )
 
@@ -74,37 +74,9 @@ class ApiChunk(object):
 class Client(object):
     methods = ('post', 'patch', 'put', 'delete', 'get', 'head', 'options')
 
+    def __init__(self, host, credentials):
+        self.host = host
+        self.credentials = credentials
+
     def __getattr__(self, name):
-
-        return ApiChunk(name)
-
-
-def get_script_path(campaign_id, creative_id, site_id,
-                    placement_id, view_event=True):
-    """
-    Returns the location of live ad scripts.
-    If we don't want to fire the view event, then we link
-    straight to the ad.js in S3 otherwise we hit the
-    adservers as usual.
-    """
-    if view_event:
-        return '/'.join([
-            settings.LIVE_SERVING_LOCATION,
-            get_random_sixteen_digit(),
-            str(campaign_id), str(creative_id),
-            str(site_id), str(placement_id),
-        ])
-    else:
-        return '/'.join([
-            settings.AWS_SERVING_LOCATION,
-            str(campaign_id), str(placement_id),
-            'ad.js',
-        ])
-
-
-def get_random_sixteen_digit():
-    """
-    Simulates the javascript random 16 digit number
-    generation we use for cache busting.
-    """
-    return ''.join(["%s" % randint(0, 9) for num in range(16)])
+        return ApiChunk(self.host, self.credentials, name)
