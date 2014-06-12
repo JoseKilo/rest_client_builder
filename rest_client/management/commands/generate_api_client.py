@@ -6,7 +6,6 @@ endpoints.py module inside to be used by a client python project.
 
 Inspired by django-extensions management command `show_urls`
 https://github.com/django-extensions/django-extensions
-
 """
 
 from distutils import core

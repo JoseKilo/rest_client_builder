@@ -22,7 +22,6 @@ class ApiChunk(object):
 
     Instances of this class can also return new instances if nested api
     resources are invoked.
-
     """
 
     def __init__(self, host, credentials, name):
@@ -39,7 +38,6 @@ class ApiChunk(object):
         Within kwargs we can receive url parameters (which need to be used
         to construct the url structure and they are mandatory) and also
         extra GET parameters (which are appended at the end).
-
         """
 
         request = partial(
