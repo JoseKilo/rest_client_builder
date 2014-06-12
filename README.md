@@ -35,7 +35,7 @@ Include this app into ``INSTALLED_APPS`` of your Django project.
 
 Run the following management command:
 
-``python manage.py generate_endpoints [path/to/your/root/api/urls.py]``
+``python manage.py generate_api_client [path/to/your/root/api/urls.py]``
 
 It will package your client library and will place it inside
 

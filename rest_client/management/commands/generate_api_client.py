@@ -1,8 +1,8 @@
 # Copyright 2013 Rockabox Media. All Rights Reserved.
 
 """
-manage.py command that generates an endpoints.py module to be used by
-a client library.
+manage.py command that generates a client library package with an
+endpoints.py module inside to be used by a client python project.
 
 Inspired by django-extensions management command `show_urls`
 https://github.com/django-extensions/django-extensions
@@ -84,7 +84,7 @@ def clean_patterns(urls_data):
 
 class Command(BaseCommand):
     args = '[root_urls.py]'
-    help = 'Generate endpoints.py'
+    help = 'Generate client library'
 
     def __init__(self, *args, **kwargs):
         super(Command, self).__init__(*args, **kwargs)
