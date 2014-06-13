@@ -12,7 +12,7 @@ setup(
     author_email='tech@rockabox.com',
     packages=['__NAME__'],
     include_package_data=True,
-    url='https://github.com/rockabox/rest_client',
+    url='https://github.com/rockabox/rest_client_builder',
     license='MIT',
     description='Rest Client',
     classifiers=[

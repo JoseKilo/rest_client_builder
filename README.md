@@ -1,4 +1,4 @@
-REST client builder
+REST Client Builder
 ===================
 
 A tool to generate REST HTTP API clients for Django projects.

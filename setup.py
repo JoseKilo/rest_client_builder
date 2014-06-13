@@ -6,15 +6,15 @@ except ImportError:
     from distutils.core import setup
 
 setup(
-    name='rest_client',
+    name='rest_client_builder',
     version='1.0.0',
     author='rockabox',
     author_email='tech@rockabox.com',
     packages=['rest_client', 'rest_client.management.commands'],
     include_package_data=True,
-    url='https://github.com/rockabox/rest_client',
+    url='https://github.com/rockabox/rest_client_builder',
     license='MIT',
-    description='Rest Client',
+    description='Rest Client Builder',
     classifiers=[
         'Development Status :: 2 - Beta',
         'Intended Audience :: Developers',
