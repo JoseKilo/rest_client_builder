@@ -44,7 +44,8 @@ url(
 The equivalent Python expression would be:
 
 ``
-Client(host, credentials).my_name()
+client = Client('http://www.my-domain.com/api/', 'MyUsername', 'MyPassword')
+result = client.my_name()
 ``
 
 Note that hyphens (``-``) are replaced by underscores (``_``).

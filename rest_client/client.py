@@ -24,14 +24,15 @@ class ApiChunk(object):
     resources are invoked.
     """
 
-    def __init__(self, base_url, credentials, name):
+    def __init__(self, base_url, username, password, name):
         self.name = name
         self.base_url = base_url
-        self.credentials = credentials
+        self.username = username
+        self.password = password
 
     def __getattr__(self, name):
         new_name = '__'.join([self.name, name])
-        return ApiChunk(self.base_url, self.credentials, new_name)
+        return ApiChunk(self.base_url, self.username, self.password, new_name)
 
     def __call__(self, *args, **kwargs):
         """
@@ -42,7 +43,7 @@ class ApiChunk(object):
 
         request = partial(
             getattr(requests.api, 'get'),  # TODO Generalize
-            auth=requests.auth.HTTPBasicAuth(*self.credentials),
+            auth=requests.auth.HTTPBasicAuth(self.username, self.password),
         )
 
         # Regular expression to split both types of parameters
@@ -70,11 +71,30 @@ class ApiChunk(object):
 
 
 class Client(object):
+    """
+    Object used to generate API calls from the user code.
+
+    Usage:
+
+        client = Client(
+            base_url='http://www.my-domain.com/api',
+            username='ApiUser',
+            password='ApiPassword'
+        )
+        result = client.my_api_resource.my_api_sub_resource(id=42, name='This')
+    """
+
     methods = ('post', 'patch', 'put', 'delete', 'get', 'head', 'options')
 
-    def __init__(self, base_url, credentials):
+    def __init__(self, base_url, username, password):
+        """
+        :param base_url: Base url used to build API requests
+        :param username: Username used to authenticate
+        :param password: Password used to authenticate
+        """
         self.base_url = base_url
-        self.credentials = credentials
+        self.username = username
+        self.password = password
 
     def __getattr__(self, name):
-        return ApiChunk(self.base_url, self.credentials, name)
+        return ApiChunk(self.base_url, self.username, self.password, name)
