@@ -1,7 +1,7 @@
-REST client
-===========
+REST client builder
+===================
 
-A parameterisable REST HTTP API client.
+A tool to generate REST HTTP API clients for Django projects.
 
 This is a tool to quickly build REST clients in Python from a list of URL mappings.
 It is geared towards mapping client methods to URL names from Django URL patterns.
