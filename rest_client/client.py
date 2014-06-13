@@ -24,14 +24,14 @@ class ApiChunk(object):
     resources are invoked.
     """
 
-    def __init__(self, host, credentials, name):
+    def __init__(self, base_url, credentials, name):
         self.name = name
-        self.host = host
+        self.base_url = base_url
         self.credentials = credentials
 
     def __getattr__(self, name):
         new_name = '__'.join([self.name, name])
-        return ApiChunk(self.host, self.credentials, new_name)
+        return ApiChunk(self.base_url, self.credentials, new_name)
 
     def __call__(self, *args, **kwargs):
         """
@@ -52,7 +52,7 @@ class ApiChunk(object):
 
         # Construct the url
         url = urlparse.urljoin(
-            self.host,
+            self.base_url,
             ENDPOINTS[self.name].format(*args, **url_kwargs)
         )
 
@@ -72,9 +72,9 @@ class ApiChunk(object):
 class Client(object):
     methods = ('post', 'patch', 'put', 'delete', 'get', 'head', 'options')
 
-    def __init__(self, host, credentials):
-        self.host = host
+    def __init__(self, base_url, credentials):
+        self.base_url = base_url
         self.credentials = credentials
 
     def __getattr__(self, name):
-        return ApiChunk(self.host, self.credentials, name)
+        return ApiChunk(self.base_url, self.credentials, name)
