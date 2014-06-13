@@ -1,0 +1,16 @@
+## Customize the test machine
+machine:
+  timezone:
+    Europe/London
+  python:
+    version: 2.7.3
+
+## Customize dependencies
+dependencies:
+  override:
+    - pip install -r requirements.txt
+
+## Customize test commands
+test:
+  override:
+    - python -c "print 'Done!'"
