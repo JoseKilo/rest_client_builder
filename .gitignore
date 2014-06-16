@@ -2,6 +2,6 @@
 .ropeproject
 build/
 dist/
-rest_client.egg-info/
+rest_client_builder.egg-info/
 .rbxvenv/
 docs/_build/

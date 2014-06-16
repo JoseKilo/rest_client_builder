@@ -7,10 +7,12 @@ except ImportError:
 
 setup(
     name='rest_client_builder',
-    version='1.0.0',
+    version='1.0.1',
     author='rockabox',
     author_email='tech@rockabox.com',
-    packages=['rest_client', 'rest_client.management.commands'],
+    packages=['rest_client',
+              'rest_client.management',
+              'rest_client.management.commands'],
     include_package_data=True,
     url='https://github.com/rockabox/rest_client_builder',
     license='MIT',
