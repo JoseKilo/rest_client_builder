@@ -104,7 +104,12 @@ class Command(BaseCommand):
             'VERSION': args[2]
         }
 
-        root_urls_module = imp.load_source('urls', args[0])
+        root_module_path = args[0]
+        root_module_name = (
+            os.path.splitext(
+                root_module_path.replace('./', '')
+            )[0].replace('/', '.'))
+        root_urls_module = imp.load_source(root_module_name, root_module_path)
 
         base_dir = self.create_client_package_base_dir()
         self.copy_base_client_library(base_dir, conf)
