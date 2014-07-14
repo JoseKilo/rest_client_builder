@@ -96,15 +96,27 @@ class Command(BaseCommand):
             raise CommandError(
                 'Usage:\n'
                 'python manage.py generate_api_client '
-                '[root_urls.py] [package_name] [package_version]'
+                'root_urls.py package_name package_version '
+                '[package_namespace]'
             )
 
+        root_module_path, name, version = args[:3]
+
+        if len(args) > 3:
+            namespace = args[3].replace('.', os.path.sep)
+            full_package = os.path.join(namespace, name)
+            base_package = namespace.split(os.path.sep)[0]
+        else:
+            full_package = name
+            base_package = name
+
         conf = {
-            'NAME': args[1],
-            'VERSION': args[2]
+            'NAME': name,
+            'VERSION': version,
+            'FULL_PACKAGE': full_package,
+            'BASE_PACKAGE': base_package
         }
 
-        root_module_path = args[0]
         root_module_name = (
             os.path.splitext(
                 root_module_path.replace('./', '')
@@ -141,9 +153,14 @@ class Command(BaseCommand):
         os.chdir(previous_path)
 
     def copy_setup(self, base_dir, conf):
-        setup_path = os.path.join(base_dir, conf['NAME'], 'setup_template.py')
+        setup_path = os.path.join(
+            base_dir, conf['FULL_PACKAGE'], 'setup_template.py')
         destination = os.path.join(base_dir, 'setup.py')
         shutil.copy(setup_path, destination)
+        shutil.copy(
+            os.path.join(base_dir, conf['FULL_PACKAGE'], 'MANIFEST.in'),
+            base_dir
+        )
         return destination
 
     def create_client_package_base_dir(self):
@@ -158,7 +175,15 @@ class Command(BaseCommand):
         init_path = inspect.getsourcefile(module)
         module_path = os.path.sep.join(init_path.split(os.path.sep)[:-1])
         shutil.rmtree(base_dir)
-        shutil.copytree(module_path, os.path.join(base_dir, conf['NAME']))
+        shutil.copytree(
+            module_path, os.path.join(base_dir, conf['FULL_PACKAGE'])
+        )
+
+        partial_package = base_dir
+        for level in conf['FULL_PACKAGE'].split(os.path.sep):
+            partial_package = os.path.join(partial_package, level)
+            init_file = os.path.join(partial_package, '__init__.py')
+            open(init_file, 'w+').close()
 
     def write_endpoints(self, root_urls_module, base_dir, conf):
         urls = root_urls_module.urlpatterns
@@ -168,7 +193,9 @@ class Command(BaseCommand):
         clean_urls = clean_patterns(urls_data)
         ENDPOINTS = dict(clean_urls)
 
-        endpoints_path = os.path.join(base_dir, conf['NAME'], 'endpoints.py')
+        endpoints_path = os.path.join(
+            base_dir, conf['FULL_PACKAGE'], 'endpoints.py'
+        )
 
         with open(endpoints_path, 'w+') as output_module:
             output_module.write('ENDPOINTS = ')
