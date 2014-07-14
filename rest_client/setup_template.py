@@ -10,7 +10,7 @@ setup(
     version='__VERSION__',
     author='rockabox',
     author_email='tech@rockabox.com',
-    packages=['__NAME__'],
+    packages=['__BASE_PACKAGE__'],
     include_package_data=True,
     url='https://github.com/rockabox/rest_client_builder',
     license='MIT',
