@@ -31,8 +31,26 @@ class ApiChunk(object):
         self.password = password
 
     def __getattr__(self, name):
-        new_name = '__'.join([self.name, name])
-        return ApiChunk(self.base_url, self.username, self.password, new_name)
+        if name.startswith('__'):
+            return object.__getattribute__(self, name)
+        else:
+            new_name = '__'.join([self.name, name])
+            return ApiChunk(self.base_url, self.username, self.password, new_name)
+
+    def __url(self, *args, **kwargs):
+        """
+        Construct the url
+        """
+        return urlparse.urljoin(
+            self.base_url,
+            ENDPOINTS[self.name].format(*args, **kwargs)
+        )
+
+    def __get_request(self, method):
+        return partial(
+            getattr(requests.api, method),
+            auth=requests.auth.HTTPBasicAuth(self.username, self.password),
+        )
 
     def __call__(self, *args, **kwargs):
         """
@@ -41,10 +59,7 @@ class ApiChunk(object):
         extra GET parameters (which are appended at the end).
         """
 
-        request = partial(
-            getattr(requests.api, 'get'),  # TODO Generalize
-            auth=requests.auth.HTTPBasicAuth(self.username, self.password),
-        )
+        request = self.__get_request('get')
 
         # Regular expression to split both types of parameters
         url_kwarg_keys = re.findall('{([^}]*)}', ENDPOINTS[self.name])
@@ -52,10 +67,7 @@ class ApiChunk(object):
                           for key in url_kwarg_keys)
 
         # Construct the url
-        url = urlparse.urljoin(
-            self.base_url,
-            ENDPOINTS[self.name].format(*args, **url_kwargs)
-        )
+        url = self.__url(*args, **url_kwargs)
 
         # Append extra parameters
         url_parts = list(urlparse.urlparse(url))
@@ -68,6 +80,24 @@ class ApiChunk(object):
         response = request(url).json()
 
         return response
+
+    def __setattr__(self, name, value):
+        """
+        Used to produce a POST request. Value will contain a dictionary with
+        the arguments to encode.
+        """
+        if name in ('name', 'base_url', 'username', 'password'):
+            self.__dict__[name] = value
+            return
+
+        request = self.__get_request('post')
+
+        last_chunk = self.__getattr__(name)
+        url = last_chunk.__url()
+
+        response = request(url, value)
+        if response.status_code >= 400:
+            raise Exception(response.content)
 
 
 class Client(object):

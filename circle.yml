@@ -1,3 +1,11 @@
+general:
+  branches:
+    ignore:
+      # do not rebuild branches we fast-forward to develop
+      - stable/develop
+      - /deploy\/.*/
+      - master
+
 ## Customize the test machine
 machine:
   timezone:
@@ -8,9 +16,9 @@ machine:
 ## Customize dependencies
 dependencies:
   override:
-    - pip install -r requirements.txt
+    - pip install -r test-requirements.txt
 
 ## Customize test commands
 test:
   override:
-    - python -c "print 'Done!'"
+    - nosetests
