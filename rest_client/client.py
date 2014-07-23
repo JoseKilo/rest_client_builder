@@ -57,9 +57,17 @@ class ApiChunk(object):
         Within kwargs we can receive url parameters (which need to be used
         to construct the url structure and they are mandatory) and also
         extra GET parameters (which are appended at the end).
+
+        If an extra argument 'http_method' is passed, it will be used
+        instead of GET. This can be useful to perform POST requests that
+        return some information and we want that information to be available
+        (as an opposite to the __setattr__ syntax).
         """
 
-        request = self.__get_request('get')
+        # Look for a 'http_method' to use
+        http_method = kwargs.pop('http_method', 'get')
+
+        request = self.__get_request(http_method)
 
         # Regular expression to split both types of parameters
         url_kwarg_keys = re.findall('{([^}]*)}', ENDPOINTS[self.name])

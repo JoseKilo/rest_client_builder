@@ -63,3 +63,17 @@ class RestClientTest(TestCase):
                               '{"name": "That name already exists"}')
 
         self.assertEquals(httpretty.last_request().method, httpretty.POST)
+
+    @httpretty.activate
+    def test_client_post_with_call_syntax(self):
+        httpretty.register_uri(
+            httpretty.POST, 'http://no.com/end/point/',
+            body='{"name": "object_name"}',
+            status=201,  # Resource created
+            content_type="application/json"
+        )
+
+        result = self.client.end.point(name='custom_name', http_method='post')
+
+        self.assertEquals(httpretty.last_request().method, httpretty.POST)
+        self.assertEquals(result['name'], 'object_name')
