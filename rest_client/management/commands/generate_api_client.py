@@ -13,6 +13,7 @@ from distutils import core
 import imp
 import inspect
 import json
+from optparse import make_option
 import os
 import re
 import shutil
@@ -25,7 +26,8 @@ from django.core.management.base import BaseCommand, CommandError
 from rest_client import unparse
 
 
-def extract_info_from_urlpatterns(urlpatterns, url_base='', name_base=''):
+def extract_info_from_urlpatterns(urlpatterns, url_base='', name_base='',
+                                  skip_namespaces=[]):
     """
     Obtain information about every pattern on input URL patterns
 
@@ -37,6 +39,12 @@ def extract_info_from_urlpatterns(urlpatterns, url_base='', name_base=''):
     for urlpattern in urlpatterns:
         try:
             if isinstance(urlpattern, RegexURLPattern):
+                if not urlpattern.name:
+                    raise ValueError(
+                        '{} urlpattern doesn\'t have a name'.format(
+                            urlpattern._regex
+                        )
+                    )
 
                 name = urlpattern.name
                 if name_base:
@@ -49,6 +57,9 @@ def extract_info_from_urlpatterns(urlpatterns, url_base='', name_base=''):
             elif (isinstance(urlpattern, RegexURLResolver) or
                   hasattr(urlpattern, 'url_patterns')):
 
+                if urlpattern.namespace in skip_namespaces:
+                    continue
+
                 patterns = urlpattern.url_patterns
 
                 if name_base and urlpattern.namespace:
@@ -58,13 +69,20 @@ def extract_info_from_urlpatterns(urlpatterns, url_base='', name_base=''):
                 elif urlpattern.namespace:
                     namespace = urlpattern.namespace
 
-                info.extend(extract_info_from_urlpatterns(
-                    patterns, url_base + urlpattern.regex.pattern, namespace))
+                info.extend(
+                    extract_info_from_urlpatterns(
+                        urlpatterns=patterns,
+                        url_base=url_base + urlpattern.regex.pattern,
+                        name_base=namespace,
+                        skip_namespaces=skip_namespaces
+                    )
+                )
             else:
                 raise TypeError('{} does not appear to be a '
                                 'urlpattern object'.format(urlpattern))
 
-        except (ViewDoesNotExist, ImportError):
+        except (ViewDoesNotExist, ImportError, ValueError) as exc:
+            print 'Skipping ... {}'.format(exc.message)
             continue
     return info
 
@@ -85,8 +103,24 @@ def clean_patterns(urls_data):
 
 
 class Command(BaseCommand):
-    args = '[root_urls.py]'
     help = 'Generate client library'
+
+    option_list = BaseCommand.option_list + (
+        make_option(
+            '--skip_namespaces',
+            action='store',
+            dest='skip_namespaces',
+            default='',
+            help='Skip some url namespaces'
+        ),
+        make_option(
+            '--url_base',
+            action='store',
+            dest='url_base',
+            default='',
+            help='Base url to prefix to all urls'
+        ),
+    )
 
     def __init__(self, *args, **kwargs):
         super(Command, self).__init__(*args, **kwargs)
@@ -97,10 +131,13 @@ class Command(BaseCommand):
                 'Usage:\n'
                 'python manage.py generate_api_client '
                 'root_urls.py package_name package_version '
-                '[package_namespace]'
+                '[package_namespace] [--skip_namespaces=namespace_to_skip,...] '
+                '[--url_base=my_custom_url_prefix/]'
             )
 
         root_module_path, name, version = args[:3]
+        skip_namespaces = options.pop('skip_namespaces', '').split(',')
+        url_base = options.pop('url_base', '')
 
         if len(args) > 3:
             namespace = args[3].replace('.', os.path.sep)
@@ -114,7 +151,9 @@ class Command(BaseCommand):
             'NAME': name,
             'VERSION': version,
             'FULL_PACKAGE': full_package,
-            'BASE_PACKAGE': base_package
+            'BASE_PACKAGE': base_package,
+            'SKIP_NAMESPACES': skip_namespaces,
+            'URL_BASE': url_base
         }
 
         root_module_name = (
@@ -187,9 +226,12 @@ class Command(BaseCommand):
 
     def write_endpoints(self, root_urls_module, base_dir, conf):
         urls = root_urls_module.urlpatterns
-        urls_data = extract_info_from_urlpatterns(urls,
-                                                  url_base='api/',
-                                                  name_base='')
+        urls_data = extract_info_from_urlpatterns(
+            urlpatterns=urls,
+            url_base=conf['URL_BASE'],
+            name_base='',
+            skip_namespaces=conf['SKIP_NAMESPACES']
+        )
         clean_urls = clean_patterns(urls_data)
         ENDPOINTS = dict(clean_urls)
 

@@ -1,0 +1,2 @@
+global-include rest_client/*.py
+global-include rest_client/*.in
