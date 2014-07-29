@@ -85,9 +85,12 @@ class ApiChunk(object):
 
         url = urlparse.urlunparse(url_parts)
 
-        response = request(url).json()
+        response = request(url)
+        if response.status_code >= 400:
+            raise ValueError(response.content)
 
-        return response
+        response_json = response.json()
+        return response_json
 
     def __setattr__(self, name, value):
         """
@@ -105,7 +108,7 @@ class ApiChunk(object):
 
         response = request(url, value)
         if response.status_code >= 400:
-            raise Exception(response.content)
+            raise ValueError(response.content)
 
 
 class Client(object):
