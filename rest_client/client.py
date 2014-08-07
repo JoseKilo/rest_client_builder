@@ -1,5 +1,5 @@
 from functools import partial
-from random import randint
+import json
 import re
 import urllib
 import urlparse
@@ -7,6 +7,9 @@ import urlparse
 import requests
 
 from .endpoints import ENDPOINTS
+
+
+JSON_HEADERS = {'Content-type': 'application/json'}
 
 
 class ApiChunk(object):
@@ -35,7 +38,9 @@ class ApiChunk(object):
             return object.__getattribute__(self, name)
         else:
             new_name = '__'.join([self.name, name])
-            return ApiChunk(self.base_url, self.username, self.password, new_name)
+            return ApiChunk(
+                self.base_url, self.username, self.password, new_name
+            )
 
     def __url(self, *args, **kwargs):
         """
@@ -62,10 +67,14 @@ class ApiChunk(object):
         instead of GET. This can be useful to perform POST requests that
         return some information and we want that information to be available
         (as an opposite to the __setattr__ syntax).
+
+        Another extra argument `http_body` can be used. Its value will be
+        encoded as JSON and sent as the request body.
         """
 
         # Look for a 'http_method' to use
         http_method = kwargs.pop('http_method', 'get')
+        http_body = kwargs.pop('http_body', None)
 
         request = self.__get_request(http_method)
 
@@ -84,10 +93,17 @@ class ApiChunk(object):
         url_parts[4] = urllib.urlencode(query)
 
         url = urlparse.urlunparse(url_parts)
+        request_kwargs = {'url': url, 'headers': JSON_HEADERS}
+        if http_body is not None:
+            request_kwargs['data'] = json.dumps(http_body)
 
-        response = request(url)
+        response = request(**request_kwargs)
         if response.status_code >= 400:
-            raise ValueError(response.content)
+            raise ValueError('Url: {}, HTTP Status: {}, Response: {}'.format(
+                url,
+                response.status_code,
+                response.content
+            ))
 
         response_json = response.json()
         return response_json
@@ -106,9 +122,13 @@ class ApiChunk(object):
         last_chunk = self.__getattr__(name)
         url = last_chunk.__url()
 
-        response = request(url, value)
+        response = request(url, data=value, headers=JSON_HEADERS)
         if response.status_code >= 400:
-            raise ValueError(response.content)
+            raise ValueError('Url: {}, HTTP Status: {}, Response: {}'.format(
+                url,
+                response.status_code,
+                response.content
+            ))
 
 
 class Client(object):
