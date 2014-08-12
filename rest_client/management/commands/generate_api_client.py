@@ -17,7 +17,6 @@ from optparse import make_option
 import os
 import re
 import shutil
-import sys
 
 from django.core.exceptions import ViewDoesNotExist
 from django.core.urlresolvers import RegexURLPattern, RegexURLResolver
@@ -131,7 +130,7 @@ class Command(BaseCommand):
                 'Usage:\n'
                 'python manage.py generate_api_client '
                 'root_urls.py package_name package_version '
-                '[package_namespace] [--skip_namespaces=namespace_to_skip,...] '
+                '[package_namespace] [--skip_namespaces=namespace_to_skip,..] '
                 '[--url_base=my_custom_url_prefix/]'
             )
 
@@ -209,7 +208,6 @@ class Command(BaseCommand):
         return base_dir_path
 
     def copy_base_client_library(self, base_dir, conf):
-        base_dir_abs = os.path.abspath(base_dir)
         module = __import__('rest_client')
         init_path = inspect.getsourcefile(module)
         module_path = os.path.sep.join(init_path.split(os.path.sep)[:-1])
@@ -221,8 +219,10 @@ class Command(BaseCommand):
         partial_package = base_dir
         for level in conf['FULL_PACKAGE'].split(os.path.sep):
             partial_package = os.path.join(partial_package, level)
-            init_file = os.path.join(partial_package, '__init__.py')
-            open(init_file, 'w+').close()
+            init_file_path = os.path.join(partial_package, '__init__.py')
+            with open(init_file_path, 'w+') as init_file:
+                init_file.write('from pkgutil import extend_path\n'
+                                '__path__ = extend_path(__path__, __name__)\n')
 
     def write_endpoints(self, root_urls_module, base_dir, conf):
         urls = root_urls_module.urlpatterns
