@@ -53,10 +53,7 @@ Note that hyphens (``-``) are replaced by underscores (``_``).
 Client library generation
 -------------------------
 
-Add the following into your requirements/dev.txt
-
-``-i http://cheesebox:cheese123!@cheeseshop.rockaboxmedia.com/stable/``
-``rest_client_builder==1.0.0``
+Include `rest_client_builder` into your requirements.
 
 Include ``rest_client`` into ``INSTALLED_APPS`` of your Django API server project.
 
