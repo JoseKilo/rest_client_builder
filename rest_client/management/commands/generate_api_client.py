@@ -90,7 +90,7 @@ def clean_patterns(urls_data):
     ret = []
     for _, pattern, name in urls_data:
         pattern = re.sub(r'\(\?P<', '{', pattern)
-        pattern = re.sub(r'>', '}', pattern)
+        pattern = re.sub(r'>(\\.+)?', '}', pattern)
         pattern = filter(lambda c: c not in '+^$()[]', pattern)
         pattern = re.sub('//', '/', pattern)
 
