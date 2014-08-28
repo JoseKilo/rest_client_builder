@@ -1,5 +1,6 @@
 -r requirements.txt
 
+Django==1.6.5
 nose
 mock
 httpretty
