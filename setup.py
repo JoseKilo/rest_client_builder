@@ -7,7 +7,7 @@ except ImportError:
 
 setup(
     name='rest_client_builder',
-    version='1.0.6',
+    version='1.0.7',
     author='rockabox',
     author_email='tech@rockabox.com',
     packages=['rest_client',
