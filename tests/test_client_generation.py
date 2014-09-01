@@ -35,4 +35,21 @@ class ClientGenerationTest(TestCase):
 
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0][0], 'bakery__bake')
-        self.assertEqual(result[0][1], 'bakery/bake/{thing_id}')
+        self.assertEqual(result[0][1], 'bakery/bake/{thing_id}/')
+
+    def test_clean_patterns_with_two_args(self):
+        """
+        Clean an URL containing 2 arguments
+        """
+        urls_data = [
+            (lambda _: None,  # View,
+             '^bakery/bake/(?P<pk>[^/]+)/and-then/(?P<another_id>\\d+)/',
+             'bakery:bake')
+        ]
+
+        result = clean_patterns(urls_data)
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0][0], 'bakery__bake')
+        self.assertEqual(
+            result[0][1], 'bakery/bake/{pk}/and-then/{another_id}/')

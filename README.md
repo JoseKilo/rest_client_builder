@@ -14,6 +14,14 @@ The workflow for building a custom API client is:
  * Distribute
 
 
+To run tests
+-------------------
+* And test requirements if you want to run tests
+    pip install -r test-requirements.txt
+* Run nose command
+    nosetests
+
+
 Client code example
 -------------------
 
