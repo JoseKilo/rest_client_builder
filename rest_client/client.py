@@ -5,11 +5,22 @@ import urllib
 import urlparse
 
 import requests
+from requests.auth import AuthBase, HTTPBasicAuth
 
 from .endpoints import ENDPOINTS
 
 
 JSON_HEADERS = {'Content-type': 'application/json'}
+
+
+class HTTPAuthorizationHeaderAuth(AuthBase):
+
+    def __init__(self, authorization):
+        self.authorization = authorization
+
+    def __call__(self, request):
+        request.headers['Authorization'] = self.authorization
+        return request
 
 
 class ApiChunk(object):
@@ -27,11 +38,10 @@ class ApiChunk(object):
     resources are invoked.
     """
 
-    def __init__(self, base_url, username, password, name):
+    def __init__(self, base_url, auth, name):
         self.name = name
         self.base_url = base_url
-        self.username = username
-        self.password = password
+        self.auth = auth
 
     def __getattr__(self, name):
         if name.startswith('__'):
@@ -39,7 +49,7 @@ class ApiChunk(object):
         else:
             new_name = '__'.join([self.name, name])
             return ApiChunk(
-                self.base_url, self.username, self.password, new_name
+                self.base_url, self.auth, new_name
             )
 
     def __url(self, *args, **kwargs):
@@ -52,10 +62,9 @@ class ApiChunk(object):
         )
 
     def __get_request(self, method):
-        return partial(
-            getattr(requests.api, method),
-            auth=requests.auth.HTTPBasicAuth(self.username, self.password),
-        )
+        if self.auth is None:
+            return getattr(requests.api, method)
+        return partial(getattr(requests.api, method), auth=self.auth)
 
     def __call__(self, *args, **kwargs):
         """
@@ -113,7 +122,7 @@ class ApiChunk(object):
         Used to produce a POST request. Value will contain a dictionary with
         the arguments to encode.
         """
-        if name in ('name', 'base_url', 'username', 'password'):
+        if name in ('name', 'base_url', 'auth'):
             self.__dict__[name] = value
             return
 
@@ -147,15 +156,21 @@ class Client(object):
 
     methods = ('post', 'patch', 'put', 'delete', 'get', 'head', 'options')
 
-    def __init__(self, base_url, username, password):
+    def __init__(self, base_url, username=None, password=None,
+                 authorization=None):
         """
         :param base_url: Base url used to build API requests
         :param username: Username used to authenticate
         :param password: Password used to authenticate
+        :param authorization: Token used as an Authorization HTTP header
         """
-        self.base_url = base_url
-        self.username = username
-        self.password = password
+        self._base_url = base_url
+        if username is not None and password is not None:
+            self._auth = HTTPBasicAuth(username, password)
+        elif authorization is not None:
+            self._auth = HTTPAuthorizationHeaderAuth(authorization)
+        else:
+            self._auth = None
 
     def __getattr__(self, name):
-        return ApiChunk(self.base_url, self.username, self.password, name)
+        return ApiChunk(self._base_url, self._auth, name)

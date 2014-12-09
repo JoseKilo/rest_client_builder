@@ -5,3 +5,4 @@ dist/
 rest_client_builder.egg-info/
 .rbxvenv/
 docs/_build/
+.venv/
