@@ -121,3 +121,34 @@ class RestClientTest(TestCase):
         self.assertEquals(http_body_json['name'], 'Some Random Name')
         self.assertEquals(result['name'], 'object_name')
         self.assertEquals(httpretty.last_request().method, httpretty.POST)
+
+    @httpretty.activate
+    def test_client_without_authentication(self):
+        client = Client('http://no.com')
+        httpretty.register_uri(
+            httpretty.GET, 'http://no.com/end/point/',
+            body='{"name": "object_name"}',
+            content_type="application/json"
+        )
+
+        response = client.end.point()
+
+        self.assertNotIn(
+            'Authorization', httpretty.last_request().headers.keys()
+        )
+
+    @httpretty.activate
+    def test_client_with_token_based_authentication(self):
+        token = 'Bearer: R4ND0M'
+        client = Client('http://no.com', authorization=token)
+        httpretty.register_uri(
+            httpretty.GET, 'http://no.com/end/point/',
+            body='{"name": "object_name"}',
+            content_type="application/json"
+        )
+
+        response = client.end.point()
+
+        self.assertEquals(
+            httpretty.last_request().headers['Authorization'], token
+        )
