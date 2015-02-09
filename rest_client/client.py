@@ -104,7 +104,7 @@ class ApiChunk(object):
         url_parts[4] = urllib.urlencode(query)
 
         url = urlparse.urlunparse(url_parts)
-        # append headers passed to the Client
+        # Append headers passed to the Client
         JSON_HEADERS.update(self.headers)
         request_kwargs = {'url': url, 'verify': self.verify,
                           'headers': JSON_HEADERS}

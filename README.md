@@ -58,6 +58,24 @@ result = client.my_name()
 
 Note that hyphens (``-``) are replaced by underscores (``_``).
 
+You can also include custon headers. To do that, just provide a ``dict``
+containing them, example:
+
+```
+headers = {
+    'header1': 'value1',
+    'header2': 'value2',
+}
+client = Client('http://www.my-domain.com/api/', headers=headers)
+```
+
+Also the SSL cert verification can be switched using the ``verify`` parameter. It
+can be ``True`` or ``False``:
+
+```
+client = Client('http://www.my-domain.com/api/', verify=False)
+```
+
 Client library generation
 -------------------------
 
