@@ -131,7 +131,7 @@ class RestClientTest(TestCase):
             content_type="application/json"
         )
 
-        response = client.end.point()
+        client.end.point()
 
         self.assertNotIn(
             'Authorization', httpretty.last_request().headers.keys()
@@ -147,8 +147,32 @@ class RestClientTest(TestCase):
             content_type="application/json"
         )
 
-        response = client.end.point()
+        client.end.point()
 
         self.assertEquals(
             httpretty.last_request().headers['Authorization'], token
+        )
+
+    @httpretty.activate
+    def test_custom_headers(self):
+        headers = {
+            'TEST_HEADER': 'just testing',
+            'ANOTHER_header': 'uppps, it is me again',
+        }
+        client = Client('http://no.com', headers=headers)
+        httpretty.register_uri(
+            httpretty.GET, 'http://no.com/end/point/',
+            body='{"name": "object_name"}',
+            content_type="application/json"
+        )
+
+        client.end.point()
+
+        self.assertEquals(
+            httpretty.last_request().headers['TEST_HEADER'],
+            headers['TEST_HEADER']
+        )
+        self.assertEquals(
+            httpretty.last_request().headers['ANOTHER_header'],
+            headers['ANOTHER_header']
         )
