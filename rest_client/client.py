@@ -38,10 +38,11 @@ class ApiChunk(object):
     resources are invoked.
     """
 
-    def __init__(self, base_url, auth, name):
+    def __init__(self, base_url, auth, name, headers):
         self.name = name
         self.base_url = base_url
         self.auth = auth
+        self.headers = headers
 
     def __getattr__(self, name):
         if name.startswith('__'):
@@ -49,7 +50,7 @@ class ApiChunk(object):
         else:
             new_name = '__'.join([self.name, name])
             return ApiChunk(
-                self.base_url, self.auth, new_name
+                self.base_url, self.auth, new_name, self.headers
             )
 
     def __url(self, *args, **kwargs):
@@ -102,6 +103,8 @@ class ApiChunk(object):
         url_parts[4] = urllib.urlencode(query)
 
         url = urlparse.urlunparse(url_parts)
+        # append headers passed to the Client
+        JSON_HEADERS.update(self.headers)
         request_kwargs = {'url': url, 'headers': JSON_HEADERS}
         if http_body is not None:
             request_kwargs['data'] = json.dumps(http_body)
@@ -122,7 +125,7 @@ class ApiChunk(object):
         Used to produce a POST request. Value will contain a dictionary with
         the arguments to encode.
         """
-        if name in ('name', 'base_url', 'auth'):
+        if name in ('name', 'base_url', 'auth', 'headers'):
             self.__dict__[name] = value
             return
 
@@ -157,12 +160,13 @@ class Client(object):
     methods = ('post', 'patch', 'put', 'delete', 'get', 'head', 'options')
 
     def __init__(self, base_url, username=None, password=None,
-                 authorization=None):
+                 authorization=None, headers={}):
         """
         :param base_url: Base url used to build API requests
         :param username: Username used to authenticate
         :param password: Password used to authenticate
         :param authorization: Token used as an Authorization HTTP header
+        :param custom_headers: Headers to be included in a response
         """
         self._base_url = base_url
         if username is not None and password is not None:
@@ -171,6 +175,7 @@ class Client(object):
             self._auth = HTTPAuthorizationHeaderAuth(authorization)
         else:
             self._auth = None
+        self._headers = headers
 
     def __getattr__(self, name):
-        return ApiChunk(self._base_url, self._auth, name)
+        return ApiChunk(self._base_url, self._auth, name, self._headers)
